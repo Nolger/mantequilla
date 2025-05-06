@@ -10,22 +10,85 @@ class CocineroDashboard:
         self.root.title(f"Dashboard Cocinero - {username}")
         self.root.geometry("1200x800")
 
-        # Frame para la barra superior
-        self.top_frame = ttk.Frame(self.root)
-        self.top_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        # Botón de cerrar sesión
-        ttk.Button(self.top_frame, text="Cerrar Sesión", command=self.logout).pack(side=tk.RIGHT, padx=5)
-        
-        # Mostrar información del usuario actual
-        self.show_user_info()
+        # Configurar estilos base (tema claro)
+        self.configure_styles()
+
+        # Crear la barra de navegación
+        self.create_menu()
 
         # Frame principal
         self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
+        # Mostrar información del usuario actual
+        self.show_user_info()
+
         # Mostrar la vista de comandas por defecto
         self.show_comandas_view()
+
+    def configure_styles(self):
+        style = ttk.Style()
+        style.configure("TFrame", background="#ffffff")
+        style.configure("TLabel", background="#ffffff", foreground="#000000")
+        style.configure("Nav.TFrame", background="#f0f0f0")
+        style.configure("Nav.TButton", 
+                        padding=10, 
+                        font=('Helvetica', 10),
+                        background="#f0f0f0",
+                        foreground="#000000")
+        style.map("Nav.TButton",
+                  background=[('active', '#e0e0e0')],
+                  foreground=[('active', '#000000')])
+        style.configure("TLabelframe", 
+                        background="#ffffff",
+                        foreground="#000000",
+                        bordercolor="#cccccc")
+        style.configure("TLabelframe.Label", 
+                        background="#ffffff",
+                        foreground="#000000")
+        style.configure("TFrame", bordercolor="#cccccc")
+        style.configure("Treeview", 
+                        background="#ffffff",
+                        foreground="#000000",
+                        fieldbackground="#ffffff",
+                        bordercolor="#cccccc")
+        style.configure("Treeview.Heading", 
+                        background="#f0f0f0",
+                        foreground="#000000")
+        style.configure("TSeparator", background="#d3d3d3")
+
+    def create_menu(self):
+        nav_frame = ttk.Frame(self.root)
+        nav_frame.pack(fill=tk.X, padx=10, pady=5)
+        nav_frame.configure(style="Nav.TFrame")
+
+        # Botón Comandas
+        comandas_btn = ttk.Button(nav_frame, text="Comandas", 
+                                  command=self.show_comandas_view, 
+                                  style="Nav.TButton")
+        comandas_btn.pack(side=tk.LEFT, padx=2)
+
+        # Botón Recetas
+        recetas_btn = ttk.Button(nav_frame, text="Recetas", 
+                                 command=self.show_recetas_view, 
+                                 style="Nav.TButton")
+        recetas_btn.pack(side=tk.LEFT, padx=2)
+
+        # Botón Stock
+        stock_btn = ttk.Button(nav_frame, text="Stock", 
+                               command=self.show_stock_view, 
+                               style="Nav.TButton")
+        stock_btn.pack(side=tk.LEFT, padx=2)
+
+        # Botón de cerrar sesión al final
+        logout_btn = ttk.Button(nav_frame, text="Cerrar Sesión", 
+                                command=self.logout, 
+                                style="Nav.TButton")
+        logout_btn.pack(side=tk.RIGHT, padx=2)
+
+        # Separador visual
+        separator = ttk.Separator(self.root, orient='horizontal')
+        separator.pack(fill=tk.X, padx=10, pady=5)
 
     def show_user_info(self):
         try:
@@ -35,8 +98,8 @@ class CocineroDashboard:
             result = cursor.fetchone()
             if result:
                 nombre, rol = result
-                info_label = ttk.Label(self.top_frame, text=f"Usuario: {nombre} | Rol: {rol}")
-                info_label.pack(side=tk.LEFT, padx=5)
+                info_label = ttk.Label(self.main_frame, text=f"Usuario: {nombre} | Rol: {rol}")
+                info_label.pack(pady=5)
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar información del usuario: {str(e)}")
         finally:
@@ -191,4 +254,54 @@ class CocineroDashboard:
                 if 'conn' in locals():
                     conn.close()
         
-        ttk.Button(estado_window, text="Guardar", command=guardar_estado).pack(pady=20) 
+        ttk.Button(estado_window, text="Guardar", command=guardar_estado).pack(pady=20)
+
+    def show_recetas_view(self):
+        self.clear_main_frame()
+        columns = ("ID", "Plato", "Producto", "Cantidad", "Unidad")
+        tree = ttk.Treeview(self.main_frame, columns=columns, show="headings")
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT r.id, p.nombre, pr.nombre, r.cantidad, pr.unidad
+                FROM recetas r
+                JOIN platos p ON r.id_plato = p.id
+                JOIN productos pr ON r.id_producto = pr.id
+                ORDER BY p.nombre, pr.nombre
+            """)
+            for row in cursor.fetchall():
+                tree.insert("", tk.END, values=row)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar recetas: {str(e)}")
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
+        tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    def show_stock_view(self):
+        self.clear_main_frame()
+        columns = ("ID", "Nombre", "Unidad", "Stock", "Stock Mínimo")
+        tree = ttk.Treeview(self.main_frame, columns=columns, show="headings")
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, nombre, unidad, stock, stock_minimo FROM productos")
+            for row in cursor.fetchall():
+                tree.insert("", tk.END, values=row)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar productos: {str(e)}")
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
+        tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10) 

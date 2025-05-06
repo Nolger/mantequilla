@@ -10,62 +10,119 @@ class AdminDashboard:
         self.username = username
         self.root.title(f"Dashboard Administrador - {username}")
         self.root.geometry("1200x800")
-
-        # Crear el menú principal
+        
+        # Configurar los estilos base (solo tema claro)
+        self.configure_styles()
+        
+        # Crear la barra de navegación
         self.create_menu()
         
         # Frame principal
         self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # Frame para la barra superior
-        self.top_frame = ttk.Frame(self.root)
-        self.top_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        # Botón de cerrar sesión
-        ttk.Button(self.top_frame, text="Cerrar Sesión", command=self.logout).pack(side=tk.RIGHT, padx=5)
         
         # Mostrar información del usuario actual
         self.show_user_info()
         
-        # Mostrar la vista de empleados por defecto
-        self.show_empleados_view()
+        # Mostrar el dashboard por defecto
+        self.show_dashboard()
+
+    def configure_styles(self):
+        style = ttk.Style()
+        # Solo tema claro
+        style.configure("TFrame", background="#ffffff")
+        style.configure("TLabel", background="#ffffff", foreground="#000000")
+        style.configure("Nav.TFrame", background="#f0f0f0")
+        style.configure("Nav.TButton", 
+                      padding=10, 
+                      font=('Helvetica', 10),
+                      background="#f0f0f0",
+                      foreground="#000000")
+        style.map("Nav.TButton",
+                 background=[('active', '#e0e0e0')],
+                 foreground=[('active', '#000000')])
+        style.configure("TLabelframe", 
+                      background="#ffffff",
+                      foreground="#000000",
+                      bordercolor="#cccccc")
+        style.configure("TLabelframe.Label", 
+                      background="#ffffff",
+                      foreground="#000000")
+        style.configure("TFrame", bordercolor="#cccccc")
+        style.configure("Treeview", 
+                      background="#ffffff",
+                      foreground="#000000",
+                      fieldbackground="#ffffff",
+                      bordercolor="#cccccc")
+        style.configure("Treeview.Heading", 
+                      background="#f0f0f0",
+                      foreground="#000000")
+        style.configure("TSeparator", background="#d3d3d3")
 
     def create_menu(self):
-        menubar = tk.Menu(self.root)
+        # Crear frame para la barra de navegación
+        nav_frame = ttk.Frame(self.root)
+        nav_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        # Menú Empleados
-        empleados_menu = tk.Menu(menubar, tearoff=0)
+        # Configurar el frame de navegación
+        nav_frame.configure(style="Nav.TFrame")
+        
+        # Botón Dashboard
+        dashboard_btn = ttk.Button(nav_frame, text="Dashboard", 
+                                 command=self.show_dashboard, 
+                                 style="Nav.TButton")
+        dashboard_btn.pack(side=tk.LEFT, padx=2)
+        
+        # Menú desplegable Empleados
+        empleados_btn = ttk.Menubutton(nav_frame, text="Empleados", style="Nav.TButton")
+        empleados_menu = tk.Menu(empleados_btn, tearoff=0)
         empleados_menu.add_command(label="Ver Empleados", command=self.show_empleados_view)
         empleados_menu.add_command(label="Agregar Empleado", command=self.show_add_empleado)
-        menubar.add_cascade(label="Empleados", menu=empleados_menu)
-
-        # Menú Mesas
-        mesas_menu = tk.Menu(menubar, tearoff=0)
+        empleados_btn.configure(menu=empleados_menu)
+        empleados_btn.pack(side=tk.LEFT, padx=2)
+        
+        # Menú desplegable Mesas
+        mesas_btn = ttk.Menubutton(nav_frame, text="Mesas", style="Nav.TButton")
+        mesas_menu = tk.Menu(mesas_btn, tearoff=0)
         mesas_menu.add_command(label="Ver Mesas", command=self.show_mesas_view)
         mesas_menu.add_command(label="Agregar Mesa", command=self.show_add_mesa)
-        menubar.add_cascade(label="Mesas", menu=mesas_menu)
-
-        # Menú Menú
-        menu_menu = tk.Menu(menubar, tearoff=0)
+        mesas_btn.configure(menu=mesas_menu)
+        mesas_btn.pack(side=tk.LEFT, padx=2)
+        
+        # Menú desplegable Menú
+        menu_btn = ttk.Menubutton(nav_frame, text="Menú", style="Nav.TButton")
+        menu_menu = tk.Menu(menu_btn, tearoff=0)
         menu_menu.add_command(label="Ver Platos", command=self.show_platos_view)
         menu_menu.add_command(label="Agregar Plato", command=self.show_add_plato)
         menu_menu.add_command(label="Ver Recetas", command=self.show_recetas_view)
-        menubar.add_cascade(label="Menú", menu=menu_menu)
-
-        # Menú Inventario
-        inventario_menu = tk.Menu(menubar, tearoff=0)
+        menu_btn.configure(menu=menu_menu)
+        menu_btn.pack(side=tk.LEFT, padx=2)
+        
+        # Menú desplegable Inventario
+        inventario_btn = ttk.Menubutton(nav_frame, text="Inventario", style="Nav.TButton")
+        inventario_menu = tk.Menu(inventario_btn, tearoff=0)
         inventario_menu.add_command(label="Ver Productos", command=self.show_productos_view)
         inventario_menu.add_command(label="Agregar Producto", command=self.show_add_producto)
-        menubar.add_cascade(label="Inventario", menu=inventario_menu)
-
-        # Menú Proveedores
-        proveedores_menu = tk.Menu(menubar, tearoff=0)
+        inventario_btn.configure(menu=inventario_menu)
+        inventario_btn.pack(side=tk.LEFT, padx=2)
+        
+        # Menú desplegable Proveedores
+        proveedores_btn = ttk.Menubutton(nav_frame, text="Proveedores", style="Nav.TButton")
+        proveedores_menu = tk.Menu(proveedores_btn, tearoff=0)
         proveedores_menu.add_command(label="Ver Proveedores", command=self.show_proveedores_view)
         proveedores_menu.add_command(label="Agregar Proveedor", command=self.show_add_proveedor)
-        menubar.add_cascade(label="Proveedores", menu=proveedores_menu)
-
-        self.root.config(menu=menubar)
+        proveedores_btn.configure(menu=proveedores_menu)
+        proveedores_btn.pack(side=tk.LEFT, padx=2)
+        
+        # Botón de cerrar sesión al final
+        logout_btn = ttk.Button(nav_frame, text="Cerrar Sesión", 
+                              command=self.logout, 
+                              style="Nav.TButton")
+        logout_btn.pack(side=tk.RIGHT, padx=2)
+        
+        # Separador visual
+        separator = ttk.Separator(self.root, orient='horizontal')
+        separator.pack(fill=tk.X, padx=10, pady=5)
 
     def clear_main_frame(self):
         for widget in self.main_frame.winfo_children():
@@ -79,7 +136,7 @@ class AdminDashboard:
             result = cursor.fetchone()
             if result:
                 nombre, rol = result
-                info_label = ttk.Label(self.top_frame, text=f"Usuario: {nombre} | Rol: {rol}")
+                info_label = ttk.Label(self.main_frame, text=f"Usuario: {nombre} | Rol: {rol}")
                 info_label.pack(side=tk.LEFT, padx=5)
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar información del usuario: {str(e)}")
@@ -1153,4 +1210,178 @@ class AdminDashboard:
                 if 'cursor' in locals():
                     cursor.close()
                 if 'conn' in locals():
-                    conn.close() 
+                    conn.close()
+
+    def show_dashboard(self):
+        self.clear_main_frame()
+        
+        # Frame para notificaciones
+        notification_frame = ttk.Frame(self.main_frame)
+        notification_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        # Crear frame para el dashboard
+        dashboard_frame = ttk.Frame(self.main_frame)
+        dashboard_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Obtener notificaciones
+            notifications = []
+            
+            # Verificar productos con stock bajo
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM productos 
+                WHERE stock <= stock_minimo
+            """)
+            low_stock_count = cursor.fetchone()[0]
+            if low_stock_count > 0:
+                notifications.append(("⚠️", f"Hay {low_stock_count} productos con stock bajo", "warning"))
+            
+            # Verificar comandas pendientes
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM comandas 
+                WHERE estado != 'servido'
+            """)
+            pending_orders = cursor.fetchone()[0]
+            if pending_orders > 0:
+                notifications.append(("📋", f"Hay {pending_orders} comandas pendientes", "info"))
+            
+            # Verificar ventas del día
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM facturas 
+                WHERE DATE(fecha) = CURDATE()
+            """)
+            today_sales = cursor.fetchone()[0]
+            if today_sales > 0:
+                notifications.append(("💰", f"Se han realizado {today_sales} ventas hoy", "success"))
+            
+            # Mostrar notificaciones
+            if notifications:
+                for icon, message, type in notifications:
+                    notification = ttk.Frame(notification_frame)
+                    notification.pack(fill=tk.X, pady=2)
+                    
+                    # Estilo según el tipo de notificación
+                    if type == "warning":
+                        style = ttk.Style()
+                        style.configure("Warning.TLabel", foreground="orange")
+                        ttk.Label(notification, text=icon, style="Warning.TLabel").pack(side=tk.LEFT, padx=5)
+                        ttk.Label(notification, text=message, style="Warning.TLabel").pack(side=tk.LEFT)
+                    elif type == "info":
+                        style = ttk.Style()
+                        style.configure("Info.TLabel", foreground="blue")
+                        ttk.Label(notification, text=icon, style="Info.TLabel").pack(side=tk.LEFT, padx=5)
+                        ttk.Label(notification, text=message, style="Info.TLabel").pack(side=tk.LEFT)
+                    else:  # success
+                        style = ttk.Style()
+                        style.configure("Success.TLabel", foreground="green")
+                        ttk.Label(notification, text=icon, style="Success.TLabel").pack(side=tk.LEFT, padx=5)
+                        ttk.Label(notification, text=message, style="Success.TLabel").pack(side=tk.LEFT)
+            
+            # Frame para estadísticas
+            stats_frame = ttk.LabelFrame(dashboard_frame, text="Estadísticas Generales")
+            stats_frame.pack(fill=tk.X, padx=5, pady=5)
+            
+            # Obtener estadísticas
+            cursor.execute("""
+                SELECT 
+                    (SELECT COUNT(*) FROM empleados) as total_empleados,
+                    (SELECT COUNT(*) FROM mesas) as total_mesas,
+                    (SELECT COUNT(*) FROM platos) as total_platos,
+                    (SELECT COUNT(*) FROM productos) as total_productos,
+                    (SELECT COUNT(*) FROM proveedores) as total_proveedores
+            """)
+            stats = cursor.fetchone()
+            
+            # Mostrar estadísticas
+            stats_grid = ttk.Frame(stats_frame)
+            stats_grid.pack(fill=tk.X, padx=10, pady=10)
+            
+            ttk.Label(stats_grid, text=f"Total Empleados: {stats[0]}").grid(row=0, column=0, padx=20, pady=5)
+            ttk.Label(stats_grid, text=f"Total Mesas: {stats[1]}").grid(row=0, column=1, padx=20, pady=5)
+            ttk.Label(stats_grid, text=f"Total Platos: {stats[2]}").grid(row=0, column=2, padx=20, pady=5)
+            ttk.Label(stats_grid, text=f"Total Productos: {stats[3]}").grid(row=0, column=3, padx=20, pady=5)
+            ttk.Label(stats_grid, text=f"Total Proveedores: {stats[4]}").grid(row=0, column=4, padx=20, pady=5)
+            
+            # Frame para productos con stock bajo
+            low_stock_frame = ttk.LabelFrame(dashboard_frame, text="Productos con Stock Bajo")
+            low_stock_frame.pack(fill=tk.X, padx=5, pady=5)
+            
+            cursor.execute("""
+                SELECT p.nombre, p.stock, p.stock_minimo, p.unidad
+                FROM productos p
+                WHERE p.stock <= p.stock_minimo
+            """)
+            low_stock = cursor.fetchall()
+            
+            if low_stock:
+                low_stock_tree = ttk.Treeview(low_stock_frame, columns=("Producto", "Stock Actual", "Stock Mínimo", "Unidad"), show="headings")
+                for col in low_stock_tree["columns"]:
+                    low_stock_tree.heading(col, text=col)
+                    low_stock_tree.column(col, width=150)
+                
+                for row in low_stock:
+                    low_stock_tree.insert("", tk.END, values=row)
+                
+                low_stock_tree.pack(fill=tk.X, padx=10, pady=10)
+            else:
+                ttk.Label(low_stock_frame, text="No hay productos con stock bajo").pack(padx=10, pady=10)
+            
+            # Frame para comandas pendientes
+            pending_orders_frame = ttk.LabelFrame(dashboard_frame, text="Comandas Pendientes")
+            pending_orders_frame.pack(fill=tk.X, padx=5, pady=5)
+            
+            cursor.execute("""
+                SELECT c.id, m.numero, c.fecha, c.estado
+                FROM comandas c
+                JOIN mesas m ON c.id_mesa = m.id
+                WHERE c.estado != 'servido'
+                ORDER BY c.fecha DESC
+                LIMIT 5
+            """)
+            pending_orders = cursor.fetchall()
+            
+            if pending_orders:
+                orders_tree = ttk.Treeview(pending_orders_frame, columns=("ID", "Mesa", "Fecha", "Estado"), show="headings")
+                for col in orders_tree["columns"]:
+                    orders_tree.heading(col, text=col)
+                    orders_tree.column(col, width=150)
+                
+                for row in pending_orders:
+                    orders_tree.insert("", tk.END, values=row)
+                
+                orders_tree.pack(fill=tk.X, padx=10, pady=10)
+            else:
+                ttk.Label(pending_orders_frame, text="No hay comandas pendientes").pack(padx=10, pady=10)
+            
+            # Frame para ventas del día
+            sales_frame = ttk.LabelFrame(dashboard_frame, text="Ventas del Día")
+            sales_frame.pack(fill=tk.X, padx=5, pady=5)
+            
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_ventas,
+                    SUM(f.total) as total_ingresos
+                FROM facturas f
+                WHERE DATE(f.fecha) = CURDATE()
+            """)
+            sales = cursor.fetchone()
+            
+            sales_grid = ttk.Frame(sales_frame)
+            sales_grid.pack(fill=tk.X, padx=10, pady=10)
+            
+            ttk.Label(sales_grid, text=f"Total Ventas: {sales[0]}").grid(row=0, column=0, padx=20, pady=5)
+            ttk.Label(sales_grid, text=f"Total Ingresos: ${sales[1] if sales[1] else 0:.2f}").grid(row=0, column=1, padx=20, pady=5)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar el dashboard: {str(e)}")
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close() 
