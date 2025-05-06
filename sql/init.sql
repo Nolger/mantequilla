@@ -39,6 +39,7 @@ CREATE TABLE productos (
     nombre VARCHAR(100) NOT NULL,
     unidad VARCHAR(20) NOT NULL,
     stock DECIMAL(10,2) NOT NULL DEFAULT 0,
+    stock_minimo DECIMAL(10,2) NOT NULL DEFAULT 0,
     id_proveedor INT,
     FOREIGN KEY (id_proveedor) REFERENCES proveedores(id)
 );

@@ -50,6 +50,7 @@ class AdminDashboard:
         menu_menu = tk.Menu(menubar, tearoff=0)
         menu_menu.add_command(label="Ver Platos", command=self.show_platos_view)
         menu_menu.add_command(label="Agregar Plato", command=self.show_add_plato)
+        menu_menu.add_command(label="Ver Recetas", command=self.show_recetas_view)
         menubar.add_cascade(label="Menú", menu=menu_menu)
 
         # Menú Inventario
@@ -195,6 +196,59 @@ class AdminDashboard:
                     conn.close()
         
         ttk.Button(password_window, text="Guardar", command=save_password).pack(pady=20)
+
+    def edit_empleado(self, tree):
+        selected = tree.selection()
+        if not selected:
+            messagebox.showwarning("Advertencia", "Por favor seleccione un empleado")
+            return
+        
+        # Obtener datos del empleado seleccionado
+        item = tree.item(selected[0])
+        values = item['values']
+        
+        # Crear ventana de edición
+        edit_window = tk.Toplevel(self.root)
+        edit_window.title("Editar Empleado")
+        edit_window.geometry("300x300")
+        
+        ttk.Label(edit_window, text="Nombre:").pack(pady=5)
+        nombre_entry = ttk.Entry(edit_window)
+        nombre_entry.insert(0, values[1])
+        nombre_entry.pack(pady=5)
+        
+        ttk.Label(edit_window, text="Usuario:").pack(pady=5)
+        usuario_entry = ttk.Entry(edit_window)
+        usuario_entry.insert(0, values[3])
+        usuario_entry.pack(pady=5)
+        
+        ttk.Label(edit_window, text="Rol:").pack(pady=5)
+        rol_var = tk.StringVar(value=values[2])
+        roles = ["administrador", "mesero", "cocinero", "aseo", "domiciliario"]
+        rol_combo = ttk.Combobox(edit_window, textvariable=rol_var, values=roles, state="readonly")
+        rol_combo.pack(pady=5)
+        
+        def save_changes():
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE empleados SET nombre = %s, usuario = %s, rol = %s WHERE id = %s",
+                    (nombre_entry.get(), usuario_entry.get(), rol_var.get(), values[0])
+                )
+                conn.commit()
+                messagebox.showinfo("Éxito", "Empleado actualizado correctamente")
+                edit_window.destroy()
+                self.show_empleados_view()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al actualizar empleado: {str(e)}")
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals():
+                    conn.close()
+        
+        ttk.Button(edit_window, text="Guardar Cambios", command=save_changes).pack(pady=20)
 
     def show_mesas_view(self):
         self.clear_main_frame()
@@ -488,7 +542,7 @@ class AdminDashboard:
         self.clear_main_frame()
         
         # Crear Treeview para mostrar productos
-        columns = ("ID", "Nombre", "Unidad", "Stock", "Proveedor")
+        columns = ("ID", "Nombre", "Unidad", "Stock", "Stock Mínimo", "Proveedor", "Estado")
         tree = ttk.Treeview(self.main_frame, columns=columns, show="headings")
         
         # Configurar columnas
@@ -501,12 +555,24 @@ class AdminDashboard:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT p.id, p.nombre, p.unidad, p.stock, pr.nombre
+                SELECT p.id, p.nombre, p.unidad, p.stock, p.stock_minimo, pr.nombre,
+                       CASE 
+                           WHEN p.stock <= p.stock_minimo THEN 'Bajo Stock'
+                           ELSE 'OK'
+                       END as estado
                 FROM productos p
                 LEFT JOIN proveedores pr ON p.id_proveedor = pr.id
             """)
             for row in cursor.fetchall():
                 tree.insert("", tk.END, values=row)
+                
+                # Notificar si el stock está bajo
+                if row[3] <= row[4]:  # stock <= stock_minimo
+                    messagebox.showwarning(
+                        "Stock Bajo",
+                        f"El producto '{row[1]}' tiene stock bajo ({row[3]} {row[2]}). "
+                        f"Stock mínimo: {row[4]} {row[2]}"
+                    )
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar productos: {str(e)}")
         finally:
@@ -543,7 +609,11 @@ class AdminDashboard:
         stock_entry = ttk.Entry(form_frame)
         stock_entry.grid(row=2, column=1, padx=5, pady=5)
         
-        ttk.Label(form_frame, text="Proveedor:").grid(row=3, column=0, padx=5, pady=5)
+        ttk.Label(form_frame, text="Stock Mínimo:").grid(row=3, column=0, padx=5, pady=5)
+        stock_minimo_entry = ttk.Entry(form_frame)
+        stock_minimo_entry.grid(row=3, column=1, padx=5, pady=5)
+        
+        ttk.Label(form_frame, text="Proveedor:").grid(row=4, column=0, padx=5, pady=5)
         proveedor_var = tk.StringVar()
         proveedor_combo = ttk.Combobox(form_frame, textvariable=proveedor_var)
         
@@ -562,7 +632,7 @@ class AdminDashboard:
             if 'conn' in locals():
                 conn.close()
         
-        proveedor_combo.grid(row=3, column=1, padx=5, pady=5)
+        proveedor_combo.grid(row=4, column=1, padx=5, pady=5)
         
         def save_producto():
             try:
@@ -575,8 +645,8 @@ class AdminDashboard:
                     proveedor_id = int(proveedor_var.get().split(" - ")[0])
                 
                 cursor.execute(
-                    "INSERT INTO productos (nombre, unidad, stock, id_proveedor) VALUES (%s, %s, %s, %s)",
-                    (nombre_entry.get(), unidad_entry.get(), stock_entry.get(), proveedor_id)
+                    "INSERT INTO productos (nombre, unidad, stock, stock_minimo, id_proveedor) VALUES (%s, %s, %s, %s, %s)",
+                    (nombre_entry.get(), unidad_entry.get(), stock_entry.get(), stock_minimo_entry.get(), proveedor_id)
                 )
                 conn.commit()
                 messagebox.showinfo("Éxito", "Producto agregado correctamente")
@@ -589,7 +659,7 @@ class AdminDashboard:
                 if 'conn' in locals():
                     conn.close()
         
-        ttk.Button(form_frame, text="Guardar", command=save_producto).grid(row=4, column=0, columnspan=2, pady=20)
+        ttk.Button(form_frame, text="Guardar", command=save_producto).grid(row=5, column=0, columnspan=2, pady=20)
 
     def edit_producto(self, tree):
         selected = tree.selection()
@@ -604,7 +674,7 @@ class AdminDashboard:
         # Crear ventana de edición
         edit_window = tk.Toplevel(self.root)
         edit_window.title("Editar Producto")
-        edit_window.geometry("300x250")
+        edit_window.geometry("300x300")
         
         ttk.Label(edit_window, text="Nombre:").pack(pady=5)
         nombre_entry = ttk.Entry(edit_window)
@@ -621,6 +691,11 @@ class AdminDashboard:
         stock_entry.insert(0, values[3])
         stock_entry.pack(pady=5)
         
+        ttk.Label(edit_window, text="Stock Mínimo:").pack(pady=5)
+        stock_minimo_entry = ttk.Entry(edit_window)
+        stock_minimo_entry.insert(0, values[4])
+        stock_minimo_entry.pack(pady=5)
+        
         ttk.Label(edit_window, text="Proveedor:").pack(pady=5)
         proveedor_var = tk.StringVar()
         proveedor_combo = ttk.Combobox(edit_window, textvariable=proveedor_var)
@@ -634,9 +709,9 @@ class AdminDashboard:
             proveedor_combo['values'] = [f"{p[0]} - {p[1]}" for p in proveedores]
             
             # Seleccionar el proveedor actual
-            if values[4]:
+            if values[5]:
                 for p in proveedores:
-                    if p[1] == values[4]:
+                    if p[1] == values[5]:
                         proveedor_var.set(f"{p[0]} - {p[1]}")
                         break
         except Exception as e:
@@ -660,8 +735,8 @@ class AdminDashboard:
                     proveedor_id = int(proveedor_var.get().split(" - ")[0])
                 
                 cursor.execute(
-                    "UPDATE productos SET nombre = %s, unidad = %s, stock = %s, id_proveedor = %s WHERE id = %s",
-                    (nombre_entry.get(), unidad_entry.get(), stock_entry.get(), proveedor_id, values[0])
+                    "UPDATE productos SET nombre = %s, unidad = %s, stock = %s, stock_minimo = %s, id_proveedor = %s WHERE id = %s",
+                    (nombre_entry.get(), unidad_entry.get(), stock_entry.get(), stock_minimo_entry.get(), proveedor_id, values[0])
                 )
                 conn.commit()
                 messagebox.showinfo("Éxito", "Producto actualizado correctamente")
@@ -880,4 +955,202 @@ class AdminDashboard:
             ):
                 self.show_empleados_view()
         
-        ttk.Button(form_frame, text="Guardar", command=save_empleado).grid(row=4, column=0, columnspan=2, pady=20) 
+        ttk.Button(form_frame, text="Guardar", command=save_empleado).grid(row=4, column=0, columnspan=2, pady=20)
+
+    def show_recetas_view(self):
+        self.clear_main_frame()
+        
+        # Crear Treeview para mostrar recetas
+        columns = ("ID", "Plato", "Producto", "Cantidad", "Unidad")
+        tree = ttk.Treeview(self.main_frame, columns=columns, show="headings")
+        
+        # Configurar columnas
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+        
+        # Obtener datos de recetas
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT r.id, p.nombre, pr.nombre, r.cantidad, pr.unidad
+                FROM recetas r
+                JOIN platos p ON r.id_plato = p.id
+                JOIN productos pr ON r.id_producto = pr.id
+                ORDER BY p.nombre, pr.nombre
+            """)
+            for row in cursor.fetchall():
+                tree.insert("", tk.END, values=row)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar recetas: {str(e)}")
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
+
+        # Agregar botones de acción
+        btn_frame = ttk.Frame(self.main_frame)
+        btn_frame.pack(pady=10)
+        
+        ttk.Button(btn_frame, text="Agregar Receta", command=self.show_add_receta).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Editar", command=lambda: self.edit_receta(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Eliminar", command=lambda: self.delete_receta(tree)).pack(side=tk.LEFT, padx=5)
+        
+        tree.pack(fill=tk.BOTH, expand=True)
+
+    def show_add_receta(self):
+        self.clear_main_frame()
+        
+        # Formulario para agregar receta
+        form_frame = ttk.Frame(self.main_frame)
+        form_frame.pack(pady=20)
+        
+        # Plato
+        ttk.Label(form_frame, text="Plato:").grid(row=0, column=0, padx=5, pady=5)
+        plato_var = tk.StringVar()
+        plato_combo = ttk.Combobox(form_frame, textvariable=plato_var)
+        
+        # Producto
+        ttk.Label(form_frame, text="Producto:").grid(row=1, column=0, padx=5, pady=5)
+        producto_var = tk.StringVar()
+        producto_combo = ttk.Combobox(form_frame, textvariable=producto_var)
+        
+        # Cantidad
+        ttk.Label(form_frame, text="Cantidad:").grid(row=2, column=0, padx=5, pady=5)
+        cantidad_entry = ttk.Entry(form_frame)
+        cantidad_entry.grid(row=2, column=1, padx=5, pady=5)
+        
+        # Cargar platos y productos
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Cargar platos
+            cursor.execute("SELECT id, nombre FROM platos")
+            platos = cursor.fetchall()
+            plato_combo['values'] = [f"{p[0]} - {p[1]}" for p in platos]
+            
+            # Cargar productos
+            cursor.execute("SELECT id, nombre FROM productos")
+            productos = cursor.fetchall()
+            producto_combo['values'] = [f"{p[0]} - {p[1]}" for p in productos]
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar datos: {str(e)}")
+            return
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
+        
+        plato_combo.grid(row=0, column=1, padx=5, pady=5)
+        producto_combo.grid(row=1, column=1, padx=5, pady=5)
+        
+        def save_receta():
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                
+                # Obtener IDs
+                plato_id = int(plato_var.get().split(" - ")[0])
+                producto_id = int(producto_var.get().split(" - ")[0])
+                
+                cursor.execute(
+                    "INSERT INTO recetas (id_plato, id_producto, cantidad) VALUES (%s, %s, %s)",
+                    (plato_id, producto_id, cantidad_entry.get())
+                )
+                conn.commit()
+                messagebox.showinfo("Éxito", "Receta agregada correctamente")
+                self.show_recetas_view()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al agregar receta: {str(e)}")
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals():
+                    conn.close()
+        
+        ttk.Button(form_frame, text="Guardar", command=save_receta).grid(row=3, column=0, columnspan=2, pady=20)
+
+    def edit_receta(self, tree):
+        selected = tree.selection()
+        if not selected:
+            messagebox.showwarning("Advertencia", "Por favor seleccione una receta")
+            return
+        
+        # Obtener datos de la receta seleccionada
+        item = tree.item(selected[0])
+        values = item['values']
+        
+        # Crear ventana de edición
+        edit_window = tk.Toplevel(self.root)
+        edit_window.title("Editar Receta")
+        edit_window.geometry("300x200")
+        
+        # Plato
+        ttk.Label(edit_window, text="Plato:").pack(pady=5)
+        plato_var = tk.StringVar(value=values[1])
+        plato_label = ttk.Label(edit_window, text=values[1])
+        plato_label.pack(pady=5)
+        
+        # Producto
+        ttk.Label(edit_window, text="Producto:").pack(pady=5)
+        producto_var = tk.StringVar(value=values[2])
+        producto_label = ttk.Label(edit_window, text=values[2])
+        producto_label.pack(pady=5)
+        
+        # Cantidad
+        ttk.Label(edit_window, text="Cantidad:").pack(pady=5)
+        cantidad_entry = ttk.Entry(edit_window)
+        cantidad_entry.insert(0, values[3])
+        cantidad_entry.pack(pady=5)
+        
+        def save_changes():
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE recetas SET cantidad = %s WHERE id = %s",
+                    (cantidad_entry.get(), values[0])
+                )
+                conn.commit()
+                messagebox.showinfo("Éxito", "Receta actualizada correctamente")
+                edit_window.destroy()
+                self.show_recetas_view()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al actualizar receta: {str(e)}")
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals():
+                    conn.close()
+        
+        ttk.Button(edit_window, text="Guardar Cambios", command=save_changes).pack(pady=20)
+
+    def delete_receta(self, tree):
+        selected = tree.selection()
+        if not selected:
+            messagebox.showwarning("Advertencia", "Por favor seleccione una receta")
+            return
+        
+        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar esta receta?"):
+            item = tree.item(selected[0])
+            values = item['values']
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM recetas WHERE id = %s", (values[0],))
+                conn.commit()
+                messagebox.showinfo("Éxito", "Receta eliminada correctamente")
+                self.show_recetas_view()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al eliminar receta: {str(e)}")
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals():
+                    conn.close() 

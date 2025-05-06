@@ -138,7 +138,7 @@ def create_admin_user():
         if not cursor.fetchone():
             # Crear el usuario administrador
             salt = generate_salt()
-            hashed = hash_password("mantequilla_2025", salt)
+            hashed = hash_password("123", salt)
             cursor.execute(
                 "INSERT INTO empleados (nombre, rol, usuario, contrasena, salt) VALUES (%s, %s, %s, %s, %s)",
                 ("Administrador Principal", "administrador", "admin", hashed.hex(), salt.hex())

@@ -167,7 +167,7 @@ class CocineroDashboard:
         
         ttk.Label(estado_window, text="Nuevo Estado:").pack(pady=5)
         estado_var = tk.StringVar(value=values[3])
-        estados = ["pendiente", "en preparación", "listo", "entregado"]
+        estados = ["pendiente", "en preparación", "servido"]
         estado_combo = ttk.Combobox(estado_window, textvariable=estado_var, values=estados, state="readonly")
         estado_combo.pack(pady=5)
         
