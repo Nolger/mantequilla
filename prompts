@@ -1,0 +1,8 @@
+Estoy desarrollando una app de un restaurante en python con Tkinter y mysql en docker. En el archivo app/main.py configure un inision de seccion y registro de prubeas con un hash y salt (Para cifrar la clave almacenada en la base dedatos). 
+
+Quiero que las funciones de ese archivo se extraigan de el archivo main es decir crear un archivo que se encargue de todo lo qeu tenga que ver con el Login. Quiero que solo alla un login puesto que la unica persona que puede crear usuario es el administrador cada ves que un trabajdor comience a trabajar en la empresa. En ese archivo trabajo con un user_data.json. Pero ya quiero empezar a trabajar en la base de datos que esta en Docker (MySQL). Todas las funciones que tengan que ver con la base de datos quiero que esten en app/db.py.
+
+Las variable que se usan para la conexion con la base de datos estan en un archivo .env, Puedes usarlas como DB_HOST, MYSQL_USER, MYSQL_PASSWORD.
+
+La aplicacion principalmente será usada en un restaurante. No quiero que cualquiera se poueda registrar en ella, Quisiera que hubieran distintos tipos de empleado si, Meseros, Cocinero, Personal de aseo, Domiciliarios, etc.. Y que tambien exita un rol de administrado. El administror es el unico que tendra el poder de registrar usuarios una ves halla ngresado al dashboard en algun apartado deberá existir esa opcion por ahora no es tan relevante, Teniendo eso en cuenta reforma lo que llevamos y no se te olvide registrar el usuario administrador con las credenciales user:admin password:mantequilla_2025
+

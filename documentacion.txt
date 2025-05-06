@@ -1,0 +1,7 @@
+1. Clona el proyecto
+2. Intalar Docker y Docker-compose
+3. Ejecutar: docker-compose up --build
+4. Instala y crea y activa tu entorno de python (python -m venv .venv && source .venv/bin/activate)
+5. Instala las librerias de python con (pip install -r requirements.txt)
+5. Crea la base de datos con el archivo sql/setup_db
+
